@@ -1,11 +1,20 @@
 # We need JDK 8 and SBT 1.0.x
-FROM hseeberger/scala-sbt:8u151-2.12.4-1.0.4 AS build
+FROM hseeberger/scala-sbt:8u282_1.4.9_2.13.5 AS build
 
 # Based on https://github.com/Wadjetz/scala-sbt-nodejs/blob/master/Dockerfile
 # Get node and libvips
-RUN curl -sL https://deb.nodesource.com/setup_10.x | bash - && \
-    apt install -y nodejs libvips-tools && \
-    apt-get clean
+#RUN curl -sL https://deb.nodesource.com/setup_10.x | bash -
+RUN apt-get update && apt-get install -y libvips-tools && apt-get clean
+
+ENV NODE_VERSION=16.13.0
+RUN curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/v0.39.0/install.sh | bash
+ENV NVM_DIR=/root/.nvm
+RUN . "$NVM_DIR/nvm.sh" && nvm install ${NODE_VERSION}
+RUN . "$NVM_DIR/nvm.sh" && nvm use v${NODE_VERSION}
+RUN . "$NVM_DIR/nvm.sh" && nvm alias default v${NODE_VERSION}
+ENV PATH="/root/.nvm/versions/node/v${NODE_VERSION}/bin/:${PATH}"
+RUN node --version
+RUN npm --version
 
 #For now we work with the master branch
 RUN git clone https://github.com/pelagios/recogito2 /usr/share/recogito

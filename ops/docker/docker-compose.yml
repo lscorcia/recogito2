@@ -18,7 +18,7 @@ services:
       - cluster.name=docker-cluster
       - xpack.security.enabled=false
       - bootstrap.memory_lock=true
-      - "ES_JAVA_OPTS=-Xms512m -Xmx512m"
+      - "ES_JAVA_OPTS=-Xms1024m -Xmx1024m"
     ulimits:
       memlock:
         soft: -1
@@ -26,9 +26,22 @@ services:
     deploy: 
       resources:
         limits:
-          memory: 1g
+          memory: 2g
     networks:
       - intranet
+  postgres95:
+    image: postgres:9.5
+    container_name: postgres
+    ports:
+      - 5432:5432
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    environment:
+      POSTGRES_PASSWORD: admin@123
+      POSTGRES_USER: postgres
+    networks:
+      - intranet
+
 # The recogito image. Nothing terribly special here. We bind mount the
 # configuration from the local file system, expose the right ports, mount a
 # volume for persistent data, and finally we sleep a short time while the
@@ -38,14 +51,17 @@ services:
     container_name: recogito
     volumes:
      - type: bind
-       source: /path/to/application.conf
+       source: ./application.conf
        target: /opt/recogito/conf/application.conf
      - recogitodata:/opt/recogito/uploads/
     ports: 
      - 9000:9000
     networks:
       - intranet
-    command: sh -c "sleep 10 && bin/recogito2"
+    command: bin/recogito2
+    depends_on:
+      - postgres95
+      - elasticsearch
 
 networks:
   intranet:
@@ -56,4 +72,6 @@ volumes:
   recogitodata:
     driver: local
   esdata:
+    driver: local
+  pgdata:
     driver: local
