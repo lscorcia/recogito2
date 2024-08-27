@@ -30,6 +30,12 @@ services:
       resources:
         limits:
           memory: 2g
+    healthcheck:
+      test: 'curl --silent --fail elasticsearch:9200/_cluster/health?wait_for_status=yellow&timeout=50s || exit 1'
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
     #networks:
     #  - intranet
 
@@ -45,6 +51,11 @@ services:
       POSTGRES_USER: postgres
     #networks:
     #  - intranet
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
 
 # The recogito image. Nothing terribly special here. We bind mount the
 # configuration from the local file system, expose the right ports, mount a
@@ -64,8 +75,10 @@ services:
     #  - intranet
     command: bin/recogito2
     depends_on:
-      - postgres
-      - elasticsearch
+      postgres:
+        condition: service_healthy
+      elasticsearch:
+        condition: service_healthy
 
   nginx:
     image: nginx:alpine
