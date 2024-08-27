@@ -2,7 +2,7 @@
 #image as its ES backend. The database server is assumed to be external to
 #Docker.
 
-version: '3.4'
+name: recogito
 services:
 # The elasticsearch configuration - options are essentially lifted straight
 # from the sample compose file in the official documentation at 
@@ -23,24 +23,28 @@ services:
       memlock:
         soft: -1
         hard: -1
+      nofile:
+        soft: "65536"
+        hard: "65536"
     deploy: 
       resources:
         limits:
           memory: 2g
-    networks:
-      - intranet
-  postgres95:
+    #networks:
+    #  - intranet
+
+  postgres:
     image: postgres:9.5
     container_name: postgres
-    ports:
-      - 5432:5432
+    #ports:
+    #  - 5432:5432
     volumes:
       - pgdata:/var/lib/postgresql/data
     environment:
       POSTGRES_PASSWORD: admin@123
       POSTGRES_USER: postgres
-    networks:
-      - intranet
+    #networks:
+    #  - intranet
 
 # The recogito image. Nothing terribly special here. We bind mount the
 # configuration from the local file system, expose the right ports, mount a
@@ -54,17 +58,38 @@ services:
        source: ./application.conf
        target: /opt/recogito/conf/application.conf
      - recogitodata:/opt/recogito/uploads/
-    ports: 
-     - 9000:9000
-    networks:
-      - intranet
+    #ports: 
+    # - 9000:9000
+    #networks:
+    #  - intranet
     command: bin/recogito2
     depends_on:
-      - postgres95
+      - postgres
       - elasticsearch
 
-networks:
-  intranet:
+  nginx:
+    image: nginx:alpine
+    container_name: nginx
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - type: bind
+        source: ./snakeoil.crt
+        target: /etc/ssl/certs/recogito.crt
+      - type: bind
+        source: ./snakeoil.key
+        target: /etc/ssl/private/recogito.key
+      - type: bind
+        source: ./nginx.conf
+        target: /etc/nginx/nginx.conf
+    depends_on:
+      - recogito
+    #networks:
+    #  - intranet
+
+#networks:
+#  intranet:
 
 # Quick and unoptimized volume configuration. Make sure to backup these
 # volumes for persistence.  
